@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store';
 import { NBR5674_STANDARDS } from '../constants/maintenance';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Calendar, 
   CheckCircle2, 
@@ -10,21 +11,43 @@ import {
   RefreshCw, 
   Building2,
   Bell,
-  Check
+  Check,
+  FileText,
+  X,
+  Trash2
 } from 'lucide-react';
 import { format, isAfter, parseISO, addMonths, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Modal } from '../components/Modal';
 
 export default function IntelligentChecklist() {
+  const [searchParams] = useSearchParams();
   const { 
     clients, 
     scheduledMaintenances, 
     generateSchedulesForClient, 
     updateScheduledMaintenance,
+    addScheduledMaintenance,
+    deleteScheduledMaintenance,
     addNotification
   } = useStore();
 
   const [selectedClientId, setSelectedClientId] = useState<string>('');
+  
+  useEffect(() => {
+    const clientId = searchParams.get('clientId');
+    if (clientId) {
+      setSelectedClientId(clientId);
+    }
+  }, [searchParams]);
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newTask, setNewTask] = useState({
+    item: '',
+    frequency: 'Mensal' as const,
+    category: 'Geral',
+    nextDate: new Date().toISOString().split('T')[0]
+  });
 
   const clientSchedules = useMemo(() => {
     return scheduledMaintenances.filter(m => m.clientId === selectedClientId);
@@ -41,6 +64,35 @@ export default function IntelligentChecklist() {
       title: 'Cronograma Gerado',
       message: `Cronograma NBR 5674 gerado com sucesso para ${selectedClient?.name}.`,
       type: 'SUCCESS'
+    });
+  };
+
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientId) return;
+
+    addScheduledMaintenance({
+      clientId: selectedClientId,
+      standardId: 'CUSTOM',
+      item: newTask.item,
+      frequency: newTask.frequency,
+      nextDate: newTask.nextDate,
+      status: 'PENDING',
+      category: newTask.category
+    });
+
+    addNotification({
+      title: 'Tarefa Adicionada',
+      message: `Tarefa "${newTask.item}" adicionada ao cronograma.`,
+      type: 'SUCCESS'
+    });
+
+    setIsAddModalOpen(false);
+    setNewTask({
+      item: '',
+      frequency: 'Mensal',
+      category: 'Geral',
+      nextDate: new Date().toISOString().split('T')[0]
     });
   };
 
@@ -89,6 +141,24 @@ export default function IntelligentChecklist() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            to="/preventive-report"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+          >
+            <FileText className="w-4 h-4" />
+            Gerar Relatório Preventivo
+          </Link>
+
+          {selectedClientId && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 px-6 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Adicionar Tarefa
+            </button>
+          )}
+
           <select
             value={selectedClientId}
             onChange={(e) => setSelectedClientId(e.target.value)}
@@ -159,9 +229,27 @@ export default function IntelligentChecklist() {
                   <div className="p-3 bg-gray-50 dark:bg-zinc-800 rounded-2xl group-hover:scale-110 transition-transform">
                     {getStatusIcon(schedule.status, schedule.nextDate)}
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                    {schedule.frequency}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                      {schedule.frequency}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (confirm('Tem certeza que deseja excluir esta tarefa do cronograma?')) {
+                          deleteScheduledMaintenance(schedule.id);
+                          addNotification({
+                            title: 'Tarefa Removida',
+                            message: `Tarefa "${schedule.item}" removida com sucesso.`,
+                            type: 'INFO'
+                          });
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                      title="Excluir Tarefa"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <h3 className="text-xl font-bold mb-1">{schedule.item}</h3>
@@ -208,6 +296,89 @@ export default function IntelligentChecklist() {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Adicionar Tarefa Preventiva"
+        maxWidth="md"
+      >
+        <form onSubmit={handleAddTask} className="space-y-6">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+              Descrição da Tarefa
+            </label>
+            <input
+              required
+              type="text"
+              value={newTask.item}
+              onChange={(e) => setNewTask({ ...newTask, item: e.target.value })}
+              className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              placeholder="Ex: Limpeza de filtros de ar condicionado"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                Frequência
+              </label>
+              <select
+                value={newTask.frequency}
+                onChange={(e) => setNewTask({ ...newTask, frequency: e.target.value as any })}
+                className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              >
+                <option value="Mensal">Mensal</option>
+                <option value="Trimestral">Trimestral</option>
+                <option value="Semestral">Semestral</option>
+                <option value="Anual">Anual</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                Categoria
+              </label>
+              <input
+                required
+                type="text"
+                value={newTask.category}
+                onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
+                className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                placeholder="Ex: Elétrica"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+              Próxima Data
+            </label>
+            <input
+              required
+              type="date"
+              value={newTask.nextDate}
+              onChange={(e) => setNewTask({ ...newTask, nextDate: e.target.value })}
+              className="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(false)}
+              className="px-6 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="bg-primary hover:bg-primary-hover text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-primary/20"
+            >
+              Adicionar Tarefa
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

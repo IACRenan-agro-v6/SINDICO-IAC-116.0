@@ -348,6 +348,7 @@ interface AppState {
   theme: 'light' | 'dark';
   isAuthenticated: boolean;
   menuOrder: string[];
+  visibleModules: string[];
   isLoading: boolean;
   
   fetchInitialData: () => Promise<void>;
@@ -355,6 +356,7 @@ interface AppState {
   setCompanySignature: (signature: string | null) => void;
   setCompanyData: (data: CompanyData) => void;
   setMenuOrder: (order: string[]) => void;
+  toggleModuleVisibility: (moduleId: string) => void;
   toggleTheme: () => void;
   login: (user: string, pass: string) => boolean;
   logout: () => void;
@@ -487,6 +489,7 @@ export const useStore = create<AppState>()(
       theme: 'light',
       isAuthenticated: false,
       menuOrder: ['dashboard', 'accountability', 'consumption', 'clients', 'products', 'supplies', 'tickets', 'kanban', 'quotes', 'receipts', 'financial', 'calendar', 'settings'],
+      visibleModules: ['dashboard', 'accountability', 'consumption', 'clients', 'products', 'supplies', 'tickets', 'kanban', 'quotes', 'receipts', 'financial', 'calendar', 'settings'],
       isLoading: false,
       
       fetchInitialData: async () => {
@@ -521,6 +524,11 @@ export const useStore = create<AppState>()(
       setCompanySignature: (signature) => set({ companySignature: signature }),
       setCompanyData: (data) => set({ companyData: data }),
       setMenuOrder: (order) => set({ menuOrder: order }),
+      toggleModuleVisibility: (moduleId) => set((state) => ({
+        visibleModules: state.visibleModules.includes(moduleId)
+          ? state.visibleModules.filter(id => id !== moduleId)
+          : [...state.visibleModules, moduleId]
+      })),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       
       login: (user, pass) => {

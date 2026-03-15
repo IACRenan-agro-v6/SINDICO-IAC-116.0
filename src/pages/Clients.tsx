@@ -18,10 +18,19 @@ const VIBRANT_GRADIENTS = [
 
 export default function Clients() {
   const navigate = useNavigate();
-  const { clients, addClient, updateClient, deleteClient, theme } = useStore();
+  const { clients, addClient, updateClient, deleteClient, addScheduledMaintenance, addNotification, theme } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [selectedClientIdForTask, setSelectedClientIdForTask] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  
+  const [newTask, setNewTask] = useState({
+    item: '',
+    frequency: 'Mensal' as const,
+    category: 'Geral',
+    nextDate: new Date().toISOString().split('T')[0]
+  });
   
   const [formData, setFormData] = useState({
     name: '',
@@ -41,6 +50,36 @@ export default function Clients() {
       addClient(formData);
     }
     closeModal();
+  };
+
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClientIdForTask) return;
+
+    addScheduledMaintenance({
+      clientId: selectedClientIdForTask,
+      standardId: 'CUSTOM',
+      item: newTask.item,
+      frequency: newTask.frequency,
+      nextDate: newTask.nextDate,
+      status: 'PENDING',
+      category: newTask.category
+    });
+
+    addNotification({
+      title: 'Tarefa Adicionada',
+      message: `Tarefa "${newTask.item}" adicionada ao cronograma.`,
+      type: 'SUCCESS'
+    });
+
+    setIsAddTaskModalOpen(false);
+    setSelectedClientIdForTask(null);
+    setNewTask({
+      item: '',
+      frequency: 'Mensal',
+      category: 'Geral',
+      nextDate: new Date().toISOString().split('T')[0]
+    });
   };
 
   const openModal = (client?: typeof clients[0]) => {
@@ -122,6 +161,24 @@ export default function Clients() {
                   <Users className="w-6 h-6 text-white drop-shadow-lg" />
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={(e) => { 
+                      e.preventDefault(); 
+                      setSelectedClientIdForTask(client.id);
+                      setIsAddTaskModalOpen(true);
+                    }}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    title="Adicionar Tarefa Preventiva"
+                  >
+                    <Plus className="w-4 h-4 text-white" />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.preventDefault(); navigate(`/intelligent-checklist?clientId=${client.id}`); }}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                    title="Checklist Inteligente"
+                  >
+                    <FileText className="w-4 h-4 text-white" />
+                  </button>
                   <button 
                     onClick={(e) => { e.preventDefault(); openModal(client); }}
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -280,6 +337,90 @@ export default function Clients() {
               className="bg-white/20 hover:bg-white/30 text-white px-10 py-3 rounded-xl font-bold backdrop-blur-md border border-white/20 transition-all active:scale-95"
             >
               SALVAR
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        title="Adicionar Tarefa Preventiva"
+        maxWidth="md"
+        glass
+      >
+        <form onSubmit={handleAddTask} className="space-y-6 p-2">
+          <div>
+            <label className="block text-sm font-bold uppercase tracking-wider text-white/50 mb-2">
+              Descrição da Tarefa *
+            </label>
+            <input
+              required
+              type="text"
+              value={newTask.item}
+              onChange={(e) => setNewTask({ ...newTask, item: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 outline-none transition-all text-white placeholder:text-white/30"
+              placeholder="Ex: Limpeza de filtros de ar condicionado"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold uppercase tracking-wider text-white/50 mb-2">
+                Frequência
+              </label>
+              <select
+                value={newTask.frequency}
+                onChange={(e) => setNewTask({ ...newTask, frequency: e.target.value as any })}
+                className="w-full bg-white/5 border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 outline-none transition-all text-white"
+              >
+                <option value="Mensal" className="bg-zinc-900">Mensal</option>
+                <option value="Trimestral" className="bg-zinc-900">Trimestral</option>
+                <option value="Semestral" className="bg-zinc-900">Semestral</option>
+                <option value="Anual" className="bg-zinc-900">Anual</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold uppercase tracking-wider text-white/50 mb-2">
+                Categoria *
+              </label>
+              <input
+                required
+                type="text"
+                value={newTask.category}
+                onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 outline-none transition-all text-white placeholder:text-white/30"
+                placeholder="Ex: Elétrica"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold uppercase tracking-wider text-white/50 mb-2">
+              Próxima Data *
+            </label>
+            <input
+              required
+              type="date"
+              value={newTask.nextDate}
+              onChange={(e) => setNewTask({ ...newTask, nextDate: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 outline-none transition-all text-white"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsAddTaskModalOpen(false)}
+              className="px-6 py-3 text-white/60 hover:text-white transition-colors font-medium"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="bg-white/20 hover:bg-white/30 text-white px-10 py-3 rounded-xl font-bold backdrop-blur-md border border-white/20 transition-all active:scale-95"
+            >
+              ADICIONAR
             </button>
           </div>
         </form>

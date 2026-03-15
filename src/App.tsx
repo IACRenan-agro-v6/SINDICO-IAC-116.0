@@ -31,6 +31,7 @@ import LockerManager from './pages/LockerManager';
 import VisitorControl from './pages/VisitorControl';
 import CriticalMonitoring from './pages/CriticalMonitoring';
 import EnergyMonitoring from './pages/EnergyMonitoring';
+import PreventiveReport from './pages/PreventiveReport';
 
 function SupabaseStatus() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error' | 'missing_env'>('checking');
@@ -240,6 +241,7 @@ export default function App() {
           <Route path="/visitors" element={<VisitorControl />} />
           <Route path="/monitoring" element={<CriticalMonitoring />} />
           <Route path="/energy" element={<EnergyMonitoring />} />
+          <Route path="/preventive-report" element={<PreventiveReport />} />
           <Route path="/tickets/new" element={<TicketForm />} />
           <Route path="/tickets/:id/edit" element={<TicketForm />} />
           <Route path="/tickets/:id" element={<TicketView />} />

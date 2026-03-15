@@ -11,6 +11,7 @@ export default function Settings() {
     companySignature, setCompanySignature,
     companyData, setCompanyData,
     menuOrder, setMenuOrder,
+    visibleModules, toggleModuleVisibility,
     clients, checklistItems, tickets, quotes, receipts, costs, appointments, products,
     restoreData
   } = useStore();
@@ -130,6 +131,22 @@ export default function Settings() {
     financial: 'Financeiro',
     calendar: 'Agenda',
     settings: 'Ajustes',
+    accountability: 'Prestação de Contas',
+    consumption: 'Consumo Água/Gás',
+    supplies: 'Insumos',
+    'intelligent-checklist': 'Checklist NBR 5674',
+    'preventive-report': 'Relatório Preventiva',
+    'qr-codes': 'QR Codes',
+    approvals: 'Aprovações',
+    weather: 'Clima',
+    'quick-actions': 'Ações Rápidas',
+    notices: 'Mural de Avisos',
+    locker: 'Locker Digital',
+    visitors: 'Visitantes',
+    monitoring: 'Monitoramento IoT',
+    energy: 'Eficiência Energética',
+    assembly: 'Assembleia Virtual',
+    'demo-data': 'Dados de Demonstração'
   };
 
   const containerVariants = {
@@ -397,6 +414,39 @@ export default function Settings() {
                     <ChevronDown className="w-6 h-6" />
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Module Visibility Section */}
+        <motion.div variants={itemVariants} className="bg-zinc-50 rounded-3xl border border-zinc-200 p-8 shadow-xl">
+          <h2 className="text-2xl font-bold mb-8 flex items-center gap-3 text-zinc-900">
+            <LayoutIcon className="w-6 h-6 text-blue-600" />
+            Módulos do Dashboard
+          </h2>
+          <p className="text-lg text-zinc-500 font-light mb-8">
+            Ative ou desative os módulos que deseja visualizar no seu dashboard principal.
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(menuLabels).map(([id, label]) => (
+              <div key={id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-zinc-200 group hover:bg-zinc-50 transition-all">
+                <span className="font-bold text-zinc-700">
+                  {label}
+                </span>
+                <button 
+                  onClick={() => toggleModuleVisibility(id)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    visibleModules.includes(id) ? 'bg-blue-600' : 'bg-zinc-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      visibleModules.includes(id) ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
             ))}
           </div>

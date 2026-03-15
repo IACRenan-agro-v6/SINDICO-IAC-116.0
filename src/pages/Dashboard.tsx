@@ -7,7 +7,7 @@ import {
   Settings, Moon, Sun, UserPlus, Sun as SunIcon,
   Columns, Clock, ClipboardCheck, AlertCircle, QrCode, AlertTriangle,
   BarChart3, Droplets, Zap, ShieldCheck, Gavel, Lock, Megaphone,
-  Box, UserCheck, Activity, Maximize2
+  Box, UserCheck, Activity, Maximize2, X
 } from 'lucide-react';
 import { 
   demoClients, demoProducts, demoChecklistItems, demoTickets, 
@@ -41,7 +41,7 @@ interface TileData {
   component: React.ReactNode;
 }
 
-function SortableTile({ id, children, className, onResize }: { id: string, children: React.ReactNode, className: string, onResize: (e: React.MouseEvent) => void }) {
+function SortableTile({ id, children, className, onResize, onHide }: { id: string, children: React.ReactNode, className: string, onResize: (e: React.MouseEvent) => void, onHide: (e: React.MouseEvent) => void }) {
   const {
     attributes,
     listeners,
@@ -68,14 +68,24 @@ function SortableTile({ id, children, className, onResize }: { id: string, child
       {...listeners}
     >
       {children}
-      <button
-        onClick={onResize}
-        onPointerDown={(e) => e.stopPropagation()}
-        className="absolute top-2 right-2 p-1.5 bg-black/40 hover:bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-50"
-        title="Alterar Tamanho"
-      >
-        <Maximize2 className="w-4 h-4" />
-      </button>
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+        <button
+          onClick={onResize}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="p-1.5 bg-black/40 hover:bg-black/60 text-white rounded-lg transition-colors"
+          title="Alterar Tamanho"
+        >
+          <Maximize2 className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onHide}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="p-1.5 bg-black/40 hover:bg-red-600 text-white rounded-lg transition-colors"
+          title="Ocultar Módulo"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -142,7 +152,8 @@ export default function Dashboard() {
     appointments, companyLogo, restoreData, theme, 
     toggleTheme, scheduledMaintenances, addNotification,
     notifications, supplyItems, payments, notices,
-    packages, visitors, criticalEvents, energyData
+    packages, visitors, criticalEvents, energyData,
+    visibleModules, toggleModuleVisibility
   } = useStore();
   
   const openTickets = tickets.filter(t => t.status !== 'CONCLUIDO').length;
@@ -379,6 +390,31 @@ export default function Dashboard() {
             </div>
           </div>
           <span className="text-[11px] font-black uppercase tracking-[0.2em] relative z-10 text-white/70">Manutenção Preventiva</span>
+        </Link>
+      )
+    },
+    {
+      id: 'preventive-report',
+      type: 'wide',
+      component: (
+        <Link to="/preventive-report" className="w-full h-full bg-gradient-to-br from-[#008a00] to-[#006e00] hover:brightness-110 transition-all p-4 flex flex-col justify-between  group relative overflow-hidden border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] active:scale-95 text-white">
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/20 pointer-events-none" />
+          <div className="flex items-start gap-4 h-full relative z-10">
+            <div className="p-3 bg-white/20 rounded-2xl border border-white/20 shadow-sm group-hover:scale-110 transition-transform duration-500">
+              <FileText className="w-10 h-10 text-white" />
+            </div>
+            <div className="overflow-hidden flex-1">
+              <p className="text-[10px] font-black uppercase text-white/70 mb-1 tracking-[0.2em]">Relatório de Manutenção</p>
+              <div className="space-y-1">
+                <p className="font-black text-xl truncate text-white leading-tight">Gerar Preventiva</p>
+                <div className="flex items-center gap-2 text-white/80">
+                  <Plus className="w-4 h-4" />
+                  <p className="text-sm font-medium">Novo checklist PDF</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] relative z-10 text-white/70">Preventiva IAC</span>
         </Link>
       )
     },
@@ -731,7 +767,6 @@ export default function Dashboard() {
     }
   ];
 
-  const [tiles, setTiles] = useState<TileData[]>(initialTiles);
   const [tileSizes, setTileSizes] = useState<Record<string, 'small' | 'medium' | 'large'>>(() => {
     const saved = localStorage.getItem('dashboardTileSizes');
     if (saved) return JSON.parse(saved);
@@ -750,16 +785,34 @@ export default function Dashboard() {
     });
   };
 
+  const [tiles, setTiles] = useState<TileData[]>([]);
+
   // Sincronizar dados dinâmicos nos tiles quando o store mudar
   useEffect(() => {
-    setTiles(prev => prev.map(tile => {
-      const fresh = initialTiles.find(t => t.id === tile.id);
-      return fresh ? { ...tile, component: fresh.component } : tile;
-    }));
+    setTiles(prev => {
+      const filtered = initialTiles.filter(t => visibleModules.includes(t.id));
+      
+      // Manter a ordem atual dos tiles visíveis
+      const currentOrder = prev.map(t => t.id);
+      const sortedFiltered = [...filtered].sort((a, b) => {
+        const aIndex = currentOrder.indexOf(a.id);
+        const bIndex = currentOrder.indexOf(b.id);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
+
+      return sortedFiltered.map(tile => {
+        const fresh = initialTiles.find(t => t.id === tile.id);
+        return fresh ? { ...tile, component: fresh.component } : tile;
+      });
+    });
   }, [
     clients.length, tickets.length, products.length, receipts.length, 
     saldo, nextAppointment, notices.length, packages.length, 
-    visitors.length, criticalEvents, energyData.length
+    visitors.length, criticalEvents, energyData.length,
+    visibleModules
   ]);
 
   const handleLoadDemoData = () => {
@@ -853,6 +906,11 @@ export default function Dashboard() {
                   id={tile.id} 
                   className={sizeClasses}
                   onResize={(e) => handleResize(tile.id, tile.type, e)}
+                  onHide={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleModuleVisibility(tile.id);
+                  }}
                 >
                   {tile.component}
                 </SortableTile>
