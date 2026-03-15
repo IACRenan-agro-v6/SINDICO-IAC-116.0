@@ -129,7 +129,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <Link to="/" className="text-xl font-bold hover:text-red-600 transition-colors">
-              IAC GESTOR
+              IA COMPANY TEC
             </Link>
           </div>
           

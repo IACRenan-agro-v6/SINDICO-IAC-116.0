@@ -123,7 +123,7 @@ export default function PreventiveReport() {
     
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(companyData?.name || 'IAC GESTOR', 50, 32);
+    doc.text(companyData?.name || 'IA COMPANY TEC', 50, 32);
     doc.text(`${companyData?.address || ''}`, 50, 37);
     doc.text(`Tel: ${companyData?.phone || ''} | Email: ${companyData?.email || ''}`, 50, 42);
 
@@ -183,7 +183,7 @@ export default function PreventiveReport() {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(150);
-      doc.text(`Gerado por IAC GESTOR em ${new Date().toLocaleString('pt-BR')}`, 15, doc.internal.pageSize.getHeight() - 10);
+      doc.text(`Gerado por IA COMPANY TEC em ${new Date().toLocaleString('pt-BR')}`, 15, doc.internal.pageSize.getHeight() - 10);
       doc.text(`Página ${i} de ${pageCount}`, pageWidth - 30, doc.internal.pageSize.getHeight() - 10);
     }
 

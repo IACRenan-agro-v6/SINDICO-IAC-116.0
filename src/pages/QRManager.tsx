@@ -160,7 +160,7 @@ export default function QRManager() {
                         />
                       )}
                       <h2 className="text-3xl font-black text-zinc-900 uppercase tracking-tighter mb-2">
-                        {companyData?.name || 'IAC GESTOR'}
+                        {companyData?.name || 'IA COMPANY TEC'}
                       </h2>
                       <div className="w-24 h-1.5 bg-primary mb-8" />
                       
@@ -193,7 +193,7 @@ export default function QRManager() {
                       </div>
 
                       <div className="mt-12 pt-8 border-t border-zinc-100 w-full flex justify-between items-center text-zinc-400 font-bold text-sm uppercase tracking-widest">
-                        <span>SISTEMA IAC GESTOR</span>
+                        <span>SISTEMA IA COMPANY TEC</span>
                         <span>{new Date().getFullYear()}</span>
                       </div>
                     </div>
